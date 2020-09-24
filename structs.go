@@ -100,6 +100,7 @@ type FieldElement struct {
 
 // Hidden ...
 type Hidden struct {
-	User string `json:"user"`
-	T    string `json:"t"`
+	User     string `json:"user"`
+	T        string `json:"t"`
+	Language string `json:"language"`
 }
