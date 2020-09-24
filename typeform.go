@@ -16,7 +16,7 @@ func Init() error {
 	var conf Configuration
 
 	if err := envdecode.Decode(&conf); err != nil {
-		return fmt.Errorf("Init::envdecode.Decode: cannot parse the environment parameters: %v", err)
+		return fmt.Errorf("envdecode.Decode: cannot parse the environment parameters: %v", err)
 	}
 
 	return conf.setupTypeformWebhook()
@@ -36,19 +36,19 @@ func ParseTypeformData(data []byte) (WebhookTypeform, error) {
 
 	err := json.Unmarshal(data, &form)
 	if err != nil {
-		return form, fmt.Errorf("ParseTypeformData::json.Unmarshal: cannot parse incoming typeform data from request: %v", err)
+		return form, fmt.Errorf("json.Unmarshal: cannot parse incoming typeform data from request: %v", err)
 	}
 
 	if form.FormResponse.Hidden.User == "" {
-		return form, errors.New("ParseTypeformData: user query paramater is missing within the hidden field")
+		return form, errors.New("user query paramater is missing within the hidden field")
 	}
 
 	if form.FormResponse.Hidden.T == "" {
-		return form, errors.New("ParseTypeformData: t query paramater is missing within the hidden field")
+		return form, errors.New("t query paramater is missing within the hidden field")
 	}
 
 	if len(form.FormResponse.Answers) == 0 || len(form.FormResponse.Definition.Fields) == 0 {
-		return form, errors.New("ParseTypeformData: no questions and/or answers are found")
+		return form, errors.New("no questions and/or answers are found")
 	}
 
 	return form, nil
@@ -60,7 +60,7 @@ func (conf *Configuration) setupTypeformWebhook() error {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return fmt.Errorf("SetupTypeformWebhook: cannot construct request: %v", err)
+		return fmt.Errorf("cannot construct request: %v", err)
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("bearer %s", conf.Token))
@@ -72,12 +72,13 @@ func (conf *Configuration) setupTypeformWebhook() error {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("SetupTypeformWebhook::client.Do: cannot do request to TypeForm: %v", err)
+		return fmt.Errorf("client.Do: cannot do request to TypeForm: %v", err)
 	}
+	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("SetupTypeformWebhook::ioutil.ReadAll: cannot read response from TypeForm: %v", err)
+		return fmt.Errorf("ioutil.ReadAll: cannot read response from TypeForm: %v", err)
 	}
 
 	switch res.StatusCode {
@@ -87,7 +88,7 @@ func (conf *Configuration) setupTypeformWebhook() error {
 		var response WebhookDataResponse
 		err := json.Unmarshal(body, &response)
 		if err != nil {
-			return fmt.Errorf("SetupTypeformWebhook::json.Unmarshal: %v", err)
+			return fmt.Errorf("json.Unmarshal: %v", err)
 		}
 
 		if response.URL != conf.FormUrl {
@@ -95,11 +96,11 @@ func (conf *Configuration) setupTypeformWebhook() error {
 			if err != nil {
 				return err // returning the error directly because EnableTypeformWebhook is internal and takes care of the error formatting
 			}
-			return fmt.Errorf("SetupTypeformWebhook: webhook url from Typeform doesn't match preset: %s | %s (setting up again...)", response.URL, conf.FormUrl)
+			return fmt.Errorf("webhook url from Typeform doesn't match preset: %s | %s (setting up again...)", response.URL, conf.FormUrl)
 		}
 
 		if response.Tag != conf.Tag {
-			return fmt.Errorf("SetupTypeformWebhook: webhook tag from Typeform does not match preset: %s | %s", response.Tag, conf.Tag)
+			return fmt.Errorf("webhook tag from Typeform does not match preset: %s | %s", response.Tag, conf.Tag)
 		}
 
 		return nil
@@ -113,7 +114,7 @@ func (conf *Configuration) setupTypeformWebhook() error {
 		return nil
 
 	default:
-		return fmt.Errorf("SetupTypeformWebhook: failed request with statuscode (%s) and body: %s", res.Status, body)
+		return fmt.Errorf("failed request with statuscode (%s) and body: %s", res.Status, body)
 
 	}
 
@@ -130,14 +131,14 @@ func (conf *Configuration) enableTypeformWebhook() error {
 
 	requestByte, err := json.Marshal(requestBody)
 	if err != nil {
-		return fmt.Errorf("EnableTypeformWebhook::json.Marshall: cannot marshal request body: %v", err)
+		return fmt.Errorf("json.Marshall: cannot marshal request body: %v", err)
 	}
 
 	requestReader := bytes.NewReader(requestByte)
 
 	req, err := http.NewRequest("PUT", url, requestReader)
 	if err != nil {
-		return fmt.Errorf("EnableTypeformWebhook::http.NewRequest: %v", err)
+		return fmt.Errorf("http.NewRequest: %v", err)
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("bearer %s", conf.Token))
@@ -149,13 +150,13 @@ func (conf *Configuration) enableTypeformWebhook() error {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("EnableTypeformWebhook::client.Do: %v", err)
+		return fmt.Errorf("client.Do: %v", err)
 
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("EnableTypeformWebhook::iotutil.ReadAll: %v", err)
+		return fmt.Errorf("iotutil.ReadAll: %v", err)
 	}
 
 	switch res.StatusCode {
@@ -167,13 +168,13 @@ func (conf *Configuration) enableTypeformWebhook() error {
 		var response WebhookCreateResponse
 		err := json.Unmarshal(body, &response)
 		if err != nil {
-			return fmt.Errorf("EnableTypeformWebhook::json.Unmarhal: cannot unmarshal response body: %v", err)
+			return fmt.Errorf("json.Unmarhal: cannot unmarshal response body: %v", err)
 		}
 
 		return nil
 
 	default:
-		return fmt.Errorf("EnableTypeformWebhook: received non-ok response code (%d) with body: %s", res.StatusCode, body)
+		return fmt.Errorf("received non-ok response code (%d) with body: %s", res.StatusCode, body)
 	}
 
 }
