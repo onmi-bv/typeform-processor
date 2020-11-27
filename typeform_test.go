@@ -16,15 +16,15 @@ import (
 func TestInit(t *testing.T) {
 
 	tag := "123456"
-	formId := "abcdef"
+	formID := "abcdef"
 
-	os.Setenv("TYPEFORM_ID", formId)
+	os.Setenv("TYPEFORM_ID", formID)
 	os.Setenv("TYPEFORM_TAG", tag)
 	os.Setenv("TYPEFORM_TOKEN", "secrettoken")
 
 	mux := http.NewServeMux()
 	// the default http package does not support the parsing of Url parameters so this will hit the endpoint
-	mux.HandleFunc(fmt.Sprintf("/forms/%s/webhooks/%s", formId, tag), handleFormsWebhook(t))
+	mux.HandleFunc(fmt.Sprintf("/forms/%s/webhooks/%s", formID, tag), handleFormsWebhook(t))
 
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
@@ -105,13 +105,13 @@ func handleFormsWebhook(t *testing.T) http.HandlerFunc {
 			return
 		}
 
-		formId, tag := parsePathParameters(r.URL)
+		formID, tag := parsePathParameters(r.URL)
 
 		// retreives a single webhook (https://developer.typeform.com/webhooks/reference/retrieve-single-webhook/)
 		if r.Method == "GET" {
 
 			// if the webhook is already defined
-			if webhook.Tag == tag && webhook.FormID == formId {
+			if webhook.Tag == tag && webhook.FormID == formID {
 
 				res, err := json.Marshal(webhook)
 
@@ -151,7 +151,7 @@ func handleFormsWebhook(t *testing.T) http.HandlerFunc {
 			webhook.Enabled = requestBody.Enabled
 			webhook.URL = requestBody.URL
 			webhook.Tag = tag
-			webhook.FormID = formId
+			webhook.FormID = formID
 
 			res, err := json.Marshal(webhook)
 			if err != nil {
@@ -171,7 +171,7 @@ func handleFormsWebhook(t *testing.T) http.HandlerFunc {
 
 func parsePathParameters(u *url.URL) (string, string) {
 
-	var formId string
+	var formID string
 	var tag string
 
 	path := u.Path
@@ -179,12 +179,12 @@ func parsePathParameters(u *url.URL) (string, string) {
 	// \/forms\/([a-zA-Z0-9]+)\/webhooks\/([a-zA-Z0-9]+)
 
 	paths := strings.Split(path, "/")
-	formId = paths[1]
+	formID = paths[1]
 	tag = paths[3]
 
 	// some regex magic here
 
-	return formId, tag
+	return formID, tag
 }
 
 func TestParseTypeformData(t *testing.T) {

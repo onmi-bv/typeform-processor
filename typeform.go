@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/joeshaw/envdecode"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/joeshaw/envdecode"
 )
 
+// Init wraps the reading from env and setting up the webhook functionality
 func Init() error {
 
 	var conf Configuration
@@ -19,15 +21,53 @@ func Init() error {
 		return fmt.Errorf("envdecode.Decode: cannot parse the environment parameters: %v", err)
 	}
 
-	return conf.setupTypeformWebhook()
+	if len(conf.ID) != len(conf.Tag) {
+		return fmt.Errorf("expected thge amount of IDs and Tags to be the same")
+	}
+
+	if len(conf.ID) != len(conf.FormURL) {
+		return fmt.Errorf("expected the amount of IDs and FormURLs to be the same")
+	}
+
+	var endpoints []Endpoint
+
+	for i := range conf.ID {
+		endpoints = append(endpoints, Endpoint{
+			ID:      conf.ID[i],
+			Tag:     conf.Tag[i],
+			Token:   conf.Token,
+			FormURL: conf.FormURL[i],
+			BaseURL: conf.BaseURL,
+		})
+	}
+
+	for _, endpoint := range endpoints {
+		err := endpoint.setupTypeformWebhook()
+		if err != nil {
+			return fmt.Errorf("endpoint.setupTypeformWebhook: %v", err)
+		}
+	}
+
+	return nil
 }
 
+// Configuration allows multiple endpoints to be defined from the envs
 type Configuration struct {
-	Id      string `env:"TYPEFORM_ID,required"`
+	MultipleEndpoints bool     `env:"TYPEFORM_MULTIPLE_ENDPOINTS,default=false"`
+	ID                []string `env:"TYPEFORM_ID,required"`
+	Tag               []string `env:"TYPEFORM_TAG,required"`
+	Token             string   `env:"TYPEFORM_TOKEN,required"`
+	FormURL           []string `env:"TYPEFORM_URL,required"`
+	BaseURL           string   `env:"TYPEFORM_BASEURL,default=https://api.typeform.com"`
+}
+
+// Endpoint is the specific configuration per endpoint to be used
+type Endpoint struct {
+	ID      string `env:"TYPEFORM_ID,required"`
 	Tag     string `env:"TYPEFORM_TAG,required"`
 	Token   string `env:"TYPEFORM_TOKEN,required"`
-	FormUrl string `env:"TYPEFORM_URL,required"`
-	BaseUrl string `env:"TYPEFORM_BASEURL,default=https://api.typeform.com"`
+	FormURL string `env:"TYPEFORM_URL,required"`
+	BaseURL string `env:"TYPEFORM_BASEURL,default=https://api.typeform.com"`
 }
 
 // ParseTypeformData accepts a json and returns a WebhookTypeform struct
@@ -54,9 +94,9 @@ func ParseTypeformData(data []byte) (WebhookTypeform, error) {
 	return form, nil
 }
 
-func (conf *Configuration) setupTypeformWebhook() error {
+func (conf *Endpoint) setupTypeformWebhook() error {
 
-	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseUrl, conf.Id, conf.Tag)
+	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseURL, conf.ID, conf.Tag)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -91,12 +131,12 @@ func (conf *Configuration) setupTypeformWebhook() error {
 			return fmt.Errorf("json.Unmarshal: %v", err)
 		}
 
-		if response.URL != conf.FormUrl {
+		if response.URL != conf.FormURL {
 			err := conf.enableTypeformWebhook()
 			if err != nil {
 				return err // returning the error directly because EnableTypeformWebhook is internal and takes care of the error formatting
 			}
-			return fmt.Errorf("webhook url from Typeform doesn't match preset: %s | %s (setting up again...)", response.URL, conf.FormUrl)
+			return fmt.Errorf("webhook url from Typeform doesn't match preset: %s | %s (setting up again...)", response.URL, conf.FormURL)
 		}
 
 		if response.Tag != conf.Tag {
@@ -120,12 +160,12 @@ func (conf *Configuration) setupTypeformWebhook() error {
 
 }
 
-func (conf *Configuration) enableTypeformWebhook() error {
+func (conf *Endpoint) enableTypeformWebhook() error {
 
-	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseUrl, conf.Id, conf.Tag)
+	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseURL, conf.ID, conf.Tag)
 
 	requestBody := &WebhookCreateRequest{
-		URL:     conf.FormUrl,
+		URL:     conf.FormURL,
 		Enabled: true,
 	}
 
