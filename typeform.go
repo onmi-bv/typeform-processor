@@ -36,7 +36,7 @@ func Init() error {
 			ID:      conf.ID[i],
 			Tag:     conf.Tag[i],
 			Token:   conf.Token,
-			FormURL: conf.FormURL[i],
+			FormURL: conf.FormURL,
 			BaseURL: conf.BaseURL,
 		})
 	}
@@ -57,7 +57,7 @@ type Configuration struct {
 	ID                []string `env:"TYPEFORM_ID,required"`
 	Tag               []string `env:"TYPEFORM_TAG,required"`
 	Token             string   `env:"TYPEFORM_TOKEN,required"`
-	FormURL           []string `env:"TYPEFORM_URL,required"`
+	FormURL           string   `env:"TYPEFORM_URL,required"`
 	BaseURL           string   `env:"TYPEFORM_BASEURL,default=https://api.typeform.com"`
 }
 
