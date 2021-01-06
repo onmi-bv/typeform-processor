@@ -34,7 +34,7 @@ func Init() error {
 	for i := range conf.ID {
 		endpoints = append(endpoints, Endpoint{
 			ID:      conf.ID[i],
-			Tag:     conf.Tag[i],
+			Tag:     conf.Tag,
 			Token:   conf.Token,
 			FormURL: conf.FormURL,
 			BaseURL: conf.BaseURL,
@@ -55,7 +55,7 @@ func Init() error {
 type Configuration struct {
 	MultipleEndpoints bool     `env:"TYPEFORM_MULTIPLE_ENDPOINTS,default=false"`
 	ID                []string `env:"TYPEFORM_ID,required"`
-	Tag               []string `env:"TYPEFORM_TAG,required"`
+	Tag               string   `env:"TYPEFORM_TAG,required"`
 	Token             string   `env:"TYPEFORM_TOKEN,required"`
 	FormURL           string   `env:"TYPEFORM_URL,required"`
 	BaseURL           string   `env:"TYPEFORM_BASEURL,default=https://api.typeform.com"`
@@ -96,7 +96,7 @@ func ParseTypeformData(data []byte) (WebhookTypeform, error) {
 
 func (conf *Endpoint) setupTypeformWebhook() error {
 
-	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseURL, conf.ID, conf.Tag)
+	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseURL, conf.ID, fmt.Sprintf("%s-%s", conf.Tag, conf.ID))
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -162,7 +162,7 @@ func (conf *Endpoint) setupTypeformWebhook() error {
 
 func (conf *Endpoint) enableTypeformWebhook() error {
 
-	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseURL, conf.ID, conf.Tag)
+	url := fmt.Sprintf("%s/forms/%s/webhooks/%s", conf.BaseURL, conf.ID, fmt.Sprintf("%s-%s", conf.Tag, conf.ID))
 
 	requestBody := &WebhookCreateRequest{
 		URL:     conf.FormURL,
@@ -214,7 +214,7 @@ func (conf *Endpoint) enableTypeformWebhook() error {
 		return nil
 
 	default:
-		return fmt.Errorf("received non-ok response code (%d) with body: %s", res.StatusCode, body)
+		return fmt.Errorf("received non-ok response code (%d) with url (%s) body: %s", res.StatusCode, url, body)
 	}
 
 }
