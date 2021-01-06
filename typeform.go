@@ -25,9 +25,9 @@ func Init() error {
 		return fmt.Errorf("expected thge amount of IDs and Tags to be the same")
 	}
 
-	if len(conf.ID) != len(conf.FormURL) {
-		return fmt.Errorf("expected the amount of IDs and FormURLs to be the same")
-	}
+	// if len(conf.ID) != len(conf.FormURL) {
+	// 	return fmt.Errorf("expected the amount of IDs and FormURLs to be the same")
+	// }
 
 	var endpoints []Endpoint
 
